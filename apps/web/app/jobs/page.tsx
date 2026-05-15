@@ -1,0 +1,3 @@
+export default function Page() {
+  return <section className="space-y-6"><div className="card"><h1 className="text-2xl font-semibold">Jobs</h1><p className="mt-2 text-slate-300">Production-ready jobs workflow placeholder wired for API integration.</p></div><div className="grid gap-4 md:grid-cols-3"><div className="card"><div className="text-3xl font-bold">92%</div><div className="text-slate-400">Average match</div></div><div className="card"><div className="text-3xl font-bold">148</div><div className="text-slate-400">Candidates</div></div><div className="card"><div className="text-3xl font-bold">12</div><div className="text-slate-400">Open jobs</div></div></div></section>;
+}
