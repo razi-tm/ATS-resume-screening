@@ -1,0 +1,17 @@
+Priya Shah
+priya.shah@example.com | 212-555-0144 | New York, NY
+
+Experience
+Backend Software Engineer with 4+ years of Python, Django, SQL, Redis, Celery, Docker, and REST APIs. Built hiring workflow automation and candidate search tools.
+
+Skills
+Python, Django, SQL, Redis, Celery, Docker, REST, communication, agile
+
+Education
+B.S. Information Systems
+
+Projects
+Applicant tracking integration service with event-driven workers.
+
+Languages
+English, Hindi

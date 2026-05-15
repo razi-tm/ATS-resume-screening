@@ -1,0 +1,1 @@
+export default function Home() { return <section className="card"><h1 className="text-3xl font-bold">AI Resume Screening Platform</h1><p className="mt-3 text-slate-300">SaaS-ready dashboard foundation for jobs, candidates, screenings, analytics, and organization settings.</p></section>; }

@@ -1,0 +1,20 @@
+Alex Morgan
+alex.morgan@example.com | 415-555-0198 | San Francisco, CA
+
+Professional Experience
+Senior Machine Learning Engineer with 6+ years building Python NLP platforms, transformers classifiers, and FastAPI services. Deployed Docker workloads on AWS and PostgreSQL-backed analytics.
+
+Skills
+Python, NLP, transformers, scikit-learn, pandas, numpy, FastAPI, Docker, PostgreSQL, AWS, stakeholder management, communication
+
+Education
+M.S. Computer Science, University of California
+
+Certifications
+AWS Certified Machine Learning Specialty
+
+Projects
+Resume ranking engine using embeddings and recruiter feedback loops.
+
+Languages
+English, Spanish
