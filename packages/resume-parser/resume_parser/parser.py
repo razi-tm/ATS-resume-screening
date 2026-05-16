@@ -17,6 +17,12 @@ DEFAULT_SKILLS = {
     "pandas", "numpy", "spark", "airflow", "celery", "git", "ci/cd", "linux", "rest", "graphql",
     "leadership", "communication", "stakeholder management", "agile", "scrum",
 }
+SKILL_ALIASES = {
+    "ci/cd": ("ci cd", "continuous integration", "continuous delivery", "continuous deployment"),
+    "next.js": ("nextjs", "next js"),
+    "postgresql": ("postgres",),
+    "scikit-learn": ("sklearn", "scikit learn"),
+}
 SECTION_HEADERS = {
     "education": ("education", "academic"),
     "certifications": ("certifications", "certificates", "licenses"),
@@ -101,8 +107,11 @@ class ResumeParser:
 
     def _extract_skills(self, text: str) -> list[str]:
         lowered = text.lower()
-        found = [skill for skill in self.skill_vocabulary if re.search(rf"(?<!\w){re.escape(skill)}(?!\w)", lowered)]
-        return sorted(found)
+        return sorted(skill for skill in self.skill_vocabulary if self._has_skill(lowered, skill))
+
+    def _has_skill(self, lowered_text: str, skill: str) -> bool:
+        skill_terms = (skill, *SKILL_ALIASES.get(skill, ()))
+        return any(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", lowered_text) for term in skill_terms)
 
     def _extract_section_lines(self, text: str, section: str) -> list[str]:
         headers = SECTION_HEADERS[section]

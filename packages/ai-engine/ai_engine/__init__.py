@@ -1,3 +1,31 @@
-from .providers import DisabledLLMProvider, EmbeddingProvider, LLMProvider, SentenceTransformerProvider, TfidfEmbeddingProvider, get_embedding_provider
+from .providers import (
+    DisabledLLMProvider,
+    DisabledSkillInferenceProvider,
+    EmbeddingProvider,
+    LLMProvider,
+    OpenAIProvider,
+    OpenAISkillInferenceProvider,
+    SentenceTransformerProvider,
+    SkillInferenceProvider,
+    SkillInferenceResult,
+    TfidfEmbeddingProvider,
+    TfidfSkillInferenceProvider,
+    get_embedding_provider,
+    get_skill_inference_provider,
+)
 
-__all__ = ["DisabledLLMProvider", "EmbeddingProvider", "LLMProvider", "SentenceTransformerProvider", "TfidfEmbeddingProvider", "get_embedding_provider"]
+__all__ = [
+    "DisabledLLMProvider",
+    "DisabledSkillInferenceProvider",
+    "EmbeddingProvider",
+    "LLMProvider",
+    "OpenAIProvider",
+    "OpenAISkillInferenceProvider",
+    "SentenceTransformerProvider",
+    "SkillInferenceProvider",
+    "SkillInferenceResult",
+    "TfidfEmbeddingProvider",
+    "TfidfSkillInferenceProvider",
+    "get_embedding_provider",
+    "get_skill_inference_provider",
+]
