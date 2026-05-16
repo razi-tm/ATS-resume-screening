@@ -4,8 +4,8 @@ import math
 import re
 from dataclasses import asdict
 
-from ai_engine import EmbeddingProvider, SkillInferenceProvider, get_embedding_provider, get_skill_inference_provider
-from resume_parser import DEFAULT_SKILLS, SKILL_ALIASES
+from ai_engine import EmbeddingProvider, get_embedding_provider
+from resume_parser import DEFAULT_SKILLS, SKILL_ALIASES, SKILL_INFERENCE_RULES
 from shared_types import CandidateScore, JobDescription, ResumeProfile, ScreeningWeights
 
 
@@ -24,28 +24,22 @@ class ScreeningScorer:
         if not resumes:
             return []
         required = set(job.required_skills or self.extract_skills(job.description))
+        resume_skill_sets = [self._expand_inferred_skills(set(resume.skills)) for resume in resumes]
         job_context = self._scoring_context(job.description, required, "Required skills")
         resume_contexts = [
-            self._scoring_context(resume.raw_text, set(resume.skills), "Detected skills") for resume in resumes
+            self._scoring_context(resume.raw_text, skills, "Detected and inferred skills")
+            for resume, skills in zip(resumes, resume_skill_sets, strict=True)
         ]
         corpus = [job_context, *resume_contexts]
         embeddings = self.embedding_provider.embed(corpus)
         job_vec = embeddings[0]
         resume_vecs = embeddings[1:]
         results: list[CandidateScore] = []
-        for resume, vector, resume_context in zip(resumes, resume_vecs, resume_contexts, strict=True):
+        for resume, vector, resume_skills, resume_context in zip(resumes, resume_vecs, resume_skill_sets, resume_contexts, strict=True):
             semantic = self._cosine(job_vec, vector)
             keyword = self._keyword_overlap(resume_context, job_context)
-            direct_matches = set(resume.skills) & required
-            inferred_matches = self.skill_inference_provider.infer_matches(
-                job_description=job.description,
-                resume_text=resume.raw_text,
-                required_skills=sorted(required),
-                detected_skills=resume.skills,
-                direct_matches=sorted(direct_matches),
-            ).matched_skills
-            matched = sorted(direct_matches | set(inferred_matches))
-            missing = sorted(required - set(matched))
+            matched = sorted(resume_skills & required)
+            missing = sorted(required - resume_skills)
             skills_score = len(matched) / max(len(required), 1)
             experience_score = min(resume.years_experience / max(job.min_years_experience, 1.0), 1.0)
             final = (
@@ -73,7 +67,8 @@ class ScreeningScorer:
 
     def extract_skills(self, text: str) -> list[str]:
         lowered = text.lower()
-        return sorted(skill for skill in DEFAULT_SKILLS if self._has_skill(lowered, skill))
+        exact = {skill for skill in DEFAULT_SKILLS if self._has_skill(lowered, skill)}
+        return sorted(self._expand_inferred_skills(exact))
 
     def build_job(self, description: str, title: str = "") -> JobDescription:
         return JobDescription(title=title, description=description, required_skills=self.extract_skills(description), min_years_experience=self._extract_min_years(description))
@@ -86,6 +81,17 @@ class ScreeningScorer:
     def _has_skill(self, lowered_text: str, skill: str) -> bool:
         skill_terms = (skill, *SKILL_ALIASES.get(skill, ()))
         return any(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", lowered_text) for term in skill_terms)
+
+    def _expand_inferred_skills(self, skills: set[str]) -> set[str]:
+        expanded = set(skills)
+        changed = True
+        while changed:
+            changed = False
+            for implied_skill, evidence_skills in SKILL_INFERENCE_RULES.items():
+                if implied_skill not in expanded and expanded & evidence_skills:
+                    expanded.add(implied_skill)
+                    changed = True
+        return expanded
 
     def _cosine(self, left: list[float], right: list[float]) -> float:
         if not left or not right or len(left) != len(right):

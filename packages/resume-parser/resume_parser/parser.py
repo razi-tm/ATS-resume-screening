@@ -23,6 +23,14 @@ SKILL_ALIASES = {
     "postgresql": ("postgres",),
     "scikit-learn": ("sklearn", "scikit learn"),
 }
+SKILL_INFERENCE_RULES = {
+    "python": {"fastapi", "django", "flask", "pandas", "numpy", "pytorch", "tensorflow", "scikit-learn", "celery"},
+    "javascript": {"react", "next.js"},
+    "typescript": {"react", "next.js"},
+    "sql": {"postgresql", "mysql"},
+    "machine learning": {"nlp", "transformers", "pytorch", "tensorflow", "scikit-learn"},
+    "deep learning": {"pytorch", "tensorflow", "transformers"},
+}
 SECTION_HEADERS = {
     "education": ("education", "academic"),
     "certifications": ("certifications", "certificates", "licenses"),
@@ -107,11 +115,23 @@ class ResumeParser:
 
     def _extract_skills(self, text: str) -> list[str]:
         lowered = text.lower()
-        return sorted(skill for skill in self.skill_vocabulary if self._has_skill(lowered, skill))
+        found = {skill for skill in self.skill_vocabulary if self._has_skill(lowered, skill)}
+        return sorted(self._expand_inferred_skills(found))
 
     def _has_skill(self, lowered_text: str, skill: str) -> bool:
         skill_terms = (skill, *SKILL_ALIASES.get(skill, ()))
         return any(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", lowered_text) for term in skill_terms)
+
+    def _expand_inferred_skills(self, skills: set[str]) -> set[str]:
+        expanded = set(skills)
+        changed = True
+        while changed:
+            changed = False
+            for implied_skill, evidence_skills in SKILL_INFERENCE_RULES.items():
+                if implied_skill in self.skill_vocabulary and implied_skill not in expanded and expanded & evidence_skills:
+                    expanded.add(implied_skill)
+                    changed = True
+        return expanded
 
     def _extract_section_lines(self, text: str, section: str) -> list[str]:
         headers = SECTION_HEADERS[section]
