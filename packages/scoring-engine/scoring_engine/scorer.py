@@ -5,7 +5,7 @@ import re
 from dataclasses import asdict
 
 from ai_engine import EmbeddingProvider, get_embedding_provider
-from resume_parser import DEFAULT_SKILLS
+from resume_parser import DEFAULT_SKILLS, SKILL_ALIASES, SKILL_INFERENCE_RULES
 from shared_types import CandidateScore, JobDescription, ResumeProfile, ScreeningWeights
 
 
@@ -17,17 +17,23 @@ class ScreeningScorer:
     def score(self, resumes: list[ResumeProfile], job: JobDescription) -> list[CandidateScore]:
         if not resumes:
             return []
-        corpus = [job.description] + [resume.raw_text for resume in resumes]
+        required = set(job.required_skills or self.extract_skills(job.description))
+        resume_skill_sets = [self._expand_inferred_skills(set(resume.skills)) for resume in resumes]
+        job_context = self._scoring_context(job.description, required, "Required skills")
+        resume_contexts = [
+            self._scoring_context(resume.raw_text, skills, "Detected and inferred skills")
+            for resume, skills in zip(resumes, resume_skill_sets, strict=True)
+        ]
+        corpus = [job_context, *resume_contexts]
         embeddings = self.embedding_provider.embed(corpus)
         job_vec = embeddings[0]
         resume_vecs = embeddings[1:]
-        required = set(job.required_skills or self.extract_skills(job.description))
         results: list[CandidateScore] = []
-        for resume, vector in zip(resumes, resume_vecs, strict=True):
+        for resume, vector, resume_skills, resume_context in zip(resumes, resume_vecs, resume_skill_sets, resume_contexts, strict=True):
             semantic = self._cosine(job_vec, vector)
-            keyword = self._keyword_overlap(resume.raw_text, job.description)
-            matched = sorted(set(resume.skills) & required)
-            missing = sorted(required - set(resume.skills))
+            keyword = self._keyword_overlap(resume_context, job_context)
+            matched = sorted(resume_skills & required)
+            missing = sorted(required - resume_skills)
             skills_score = len(matched) / max(len(required), 1)
             experience_score = min(resume.years_experience / max(job.min_years_experience, 1.0), 1.0)
             final = (
@@ -55,10 +61,31 @@ class ScreeningScorer:
 
     def extract_skills(self, text: str) -> list[str]:
         lowered = text.lower()
-        return sorted(skill for skill in DEFAULT_SKILLS if re.search(rf"(?<!\w){re.escape(skill)}(?!\w)", lowered))
+        exact = {skill for skill in DEFAULT_SKILLS if self._has_skill(lowered, skill)}
+        return sorted(self._expand_inferred_skills(exact))
 
     def build_job(self, description: str, title: str = "") -> JobDescription:
         return JobDescription(title=title, description=description, required_skills=self.extract_skills(description), min_years_experience=self._extract_min_years(description))
+
+    def _scoring_context(self, text: str, skills: set[str], label: str) -> str:
+        if not skills:
+            return text
+        return f"{text}\n{label}: {' '.join(sorted(skills))}"
+
+    def _has_skill(self, lowered_text: str, skill: str) -> bool:
+        skill_terms = (skill, *SKILL_ALIASES.get(skill, ()))
+        return any(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", lowered_text) for term in skill_terms)
+
+    def _expand_inferred_skills(self, skills: set[str]) -> set[str]:
+        expanded = set(skills)
+        changed = True
+        while changed:
+            changed = False
+            for implied_skill, evidence_skills in SKILL_INFERENCE_RULES.items():
+                if implied_skill not in expanded and expanded & evidence_skills:
+                    expanded.add(implied_skill)
+                    changed = True
+        return expanded
 
     def _cosine(self, left: list[float], right: list[float]) -> float:
         if not left or not right or len(left) != len(right):
