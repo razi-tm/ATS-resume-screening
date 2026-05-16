@@ -83,7 +83,7 @@ Do **not** upload only `apps/streamlit-app/app.py`; the app imports code from th
    app.py
    ```
 
-5. Leave advanced settings empty for the default deterministic TF-IDF workflow. Add secrets only if you later wire in hosted LLM or embedding providers.
+5. Leave advanced settings empty for the default deterministic word + character n-gram TF-IDF workflow. To enable LLM-based skill reasoning, add `OPENAI_API_KEY` and set `SKILL_INFERENCE_PROVIDER=openai` in Streamlit secrets.
 6. Deploy the app.
 7. In the app, upload one or more resumes, paste a job description, tune the scoring weights, and click **Run screening**.
 
@@ -96,7 +96,7 @@ For a quick smoke test after deployment:
 3. Click **Run screening**.
 4. Review **Screening Results**, **Candidate Deep Dive**, **Analytics**, and the CSV/JSON export buttons.
 
-If deployment fails while installing dependencies, first check the Streamlit build logs. The largest dependencies are `sentence-transformers` and `spacy`; the default app path uses TF-IDF, so those can be made optional later if Community Cloud resource limits become an issue.
+If deployment fails while installing dependencies, first check the Streamlit build logs. The largest dependencies are `sentence-transformers` and `spacy`; the default app path uses TF-IDF, so those can be made optional later if Community Cloud resource limits become an issue. The optional LLM skill inference path only runs when `SKILL_INFERENCE_PROVIDER=openai` and `OPENAI_API_KEY` are configured.
 
 ## MVP Workflow
 
@@ -125,7 +125,7 @@ sequenceDiagram
   S->>A: Scores, missing skills, explanations
 ```
 
-Default local embedding mode is TF-IDF for fast reproducible tests. Set `EMBEDDING_PROVIDER=sentence-transformers` to use `sentence-transformers/all-MiniLM-L6-v2`.
+Default local embedding mode is the deterministic word + character n-gram TF-IDF provider for fast reproducible tests. Set `EMBEDDING_PROVIDER=sentence-transformers` to use `sentence-transformers/all-mpnet-base-v2`, or set `EMBEDDING_MODEL` to another compatible model.
 
 ## Testing
 
